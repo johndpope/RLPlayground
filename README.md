@@ -29,7 +29,7 @@ to install tensorflow.
 
 To download and build the code run:
 ```
-git pull https://github.com/vahidk/RLPlayground.git
+git clone https://github.com/vahidk/RLPlayground.git
 cd RLPlayground
 make
 ```
