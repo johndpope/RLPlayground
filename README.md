@@ -21,15 +21,18 @@ algorithm is provided.
 ```
 
 
-## Build
-```
-brew install swig
-pip install tensorflow
+## Setup
+Make sure _tensorflow_ and _swig_ are installed before building the 
+package. Use _apt-get_ on Linux or _brew_ on Mac to install swig.
+Follow instructions on [tensorflow's website](http//www.tensorflow.org)
+to install tensorflow. 
 
+To download and build the code run:
+```
 git pull https://github.com/vahidk/RLPlayground.git
 cd RLPlayground
 make
-``` 
+```
 
 ## Mutli-Armed Bandit Demo
 This is the "hello world" example of reinforcement learning problems. The
@@ -37,7 +40,7 @@ environemnt is simply a slot machine with each slot returning a constant
 reward. The challenge is to maxmize total reward without knowing what the
 optimal slot to select is.
 
-Run:
+To run the trainer run:
 ```
 python py/mabp_train.py
 ```
@@ -68,7 +71,7 @@ be doing much!
 
 Use the interactive demo to test out the environment:
 ``` 
-python py/chess_interactive.py
+python py/chess_interactive.py --depth 0 1
 ```
 At each step you can enter a move like "e4" or "e2e4" to move a piece.
 
