@@ -1,0 +1,8 @@
+*.so
+*.pyc
+py/_chess.cpp
+chess.py
+.DS_Store
+.vscode
+build
+model
