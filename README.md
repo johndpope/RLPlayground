@@ -28,7 +28,7 @@ pip install tensorflow
 make
 ``` 
 
-## Mutlti-Armed Bandit Demo
+## Mutli-Armed Bandit Demo
 This is the "hello world" example of reinforcement learning problems. The
 environemnt is simply a slot machine with each slot returning a constant 
 reward. The challenge is to maxmize total reward without knowing what the
