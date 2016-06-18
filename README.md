@@ -25,6 +25,9 @@ algorithm is provided.
 ```
 brew install swig
 pip install tensorflow
+
+git pull https://github.com/vahidk/RLPlayground.git
+cd RLPlayground
 make
 ``` 
 
@@ -46,7 +49,7 @@ In this slightly more complicated example the agent is supposed to find
 a diamond in a 1-D environemnt by selecting right or left actions. 
 ```
 python py/diamond_train.py
-```
+``` 
 
 ## Chess demo
 In this setup two independent agents are competing to win a chess game.
@@ -68,6 +71,7 @@ Use the interactive demo to test out the environment:
 python py/chess_interactive.py
 ```
 At each step you can enter a move like "e4" or "e2e4" to move a piece.
+
 Special commands:
 - Enter: Play one move.
 - "x": Play until the end.
