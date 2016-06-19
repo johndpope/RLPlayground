@@ -4,9 +4,9 @@ import os
 import time
 import tensorflow as tf
 
-import model
 import chess
 import chess_utils
+import pg_model
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_dir", type=str, default="model/")
@@ -91,7 +91,7 @@ def Train():
   models = [None, None]
   for c in range(2):
     with tf.variable_scope(COLORS[c]):
-      models[c] = model.Model(**chess_utils.MODEL_PARAMS)
+      models[c] = pg_model.Model(**chess_utils.MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)

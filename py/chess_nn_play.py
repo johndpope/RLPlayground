@@ -3,9 +3,9 @@ import random
 import sys
 import tensorflow as tf
 
-import model
 import chess
 import chess_utils
+import pg_model
 
 model_path = "model/model.ckpt"
 COLORS = ["black", "white"]
@@ -13,7 +13,7 @@ models = [None] * 2
 
 for c in range(2):
   with tf.variable_scope(COLORS[c]):
-    models[c] = model.Model(**chess_utils.MODEL_PARAMS)
+    models[c] = pg_model.Model(**chess_utils.MODEL_PARAMS)
 
 sess = tf.Session()
 saver = tf.train.Saver()

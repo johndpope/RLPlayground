@@ -1,10 +1,10 @@
 CPP_FLAGS=-std=c++11 -O3
-chess=chess/*.cpp
+SRC=chess/*.cpp
 HDR=chess/*.h
 
 all: py/_chess.so
 
-py/_chess.cpp: ${chess} ${HDR} py/chess.i
+py/_chess.cpp: ${SRC} ${HDR} py/chess.i
 	swig -python -c++ -Ichess -o py/_chess.cpp py/chess.i
 
 py/_chess.so: py/_chess.cpp py/setup.py
