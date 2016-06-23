@@ -115,7 +115,10 @@ def GenerateData(models):
     for step, d, game in zip(steps, data, games):
       if game.IsEnded() or step[0] == args.max_game_steps:
         if c == game.GetState().turn:
-          print "Game ended in %d steps." % step[0]
+          if game.IsCheckmate():
+            print "%s won in %d steps." % (COLORS[c], step[0])
+          else:
+            print "Draw in %d steps." % step[0]
           yield d, game
         if c == 1:
           d[0] = Data()
