@@ -8,7 +8,6 @@ class Model(object):
       tf.int32, shape=(None, observations_dims))
     self.actions = tf.placeholder(tf.int32, shape=(None))
     self.rewards = tf.placeholder(tf.float32, shape=(None))
-    self.temperature = tf.placeholder_with_default(1.0, [])
 
     batch_size = tf.shape(self.observations)[0]
 
@@ -33,7 +32,7 @@ class Model(object):
 
     # Calculate log-likelihoods for given action
     if loss == "softmax":
-      self.outputs = tf.nn.softmax(logits / self.temperature)
+      self.outputs = tf.nn.softmax(logits)
       lls = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits, self.actions)
       loss_term = tf.reduce_mean(self.rewards * lls)

@@ -14,7 +14,6 @@ parser.add_argument("--sequence_length", type=int, default=5)
 parser.add_argument("--num_train_steps", type=int, default=1000000)
 parser.add_argument("--eval_intervals", type=int, default=50)
 parser.add_argument("--batch_size", type=int, default=32)
-parser.add_argument("--temperature", type=float, default=1.)
 parser.add_argument("--learning_rate", type=float, default=0.1)
 parser.add_argument("--regularization", type=float, default=1e-5)
 args = parser.parse_args()
@@ -53,9 +52,7 @@ class GameState():
 
 
 def Policy(m, observations, stochastic=True):
-  return m.outputs.eval(feed_dict={
-    m.observations: observations,
-    m.temperature: args.temperature})
+  return m.outputs.eval(feed_dict={m.observations: observations})
 
 
 def PrintGameState(state):
@@ -139,8 +136,7 @@ def Train():
         feed_dict={
           m.observations: data.observations,
           m.actions: data.actions,
-          m.rewards: data.rewards,
-          m.temperature: args.temperature
+          m.rewards: data.rewards
         })
 
       if global_step % args.eval_intervals == 0:

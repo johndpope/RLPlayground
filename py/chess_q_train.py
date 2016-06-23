@@ -82,13 +82,16 @@ def PlayTurn(m, games):
   actions = SampleActions(games, values)
   rs = np.zeros([len(games)], dtype=np.float32)
   for i, game in enumerate(games):
+    if game.IsEnded():
+      rs[i] = 0
+      continue
     r0 = chess_utils.StandardValue(game)
     game.Play(chess.Move(int(actions[i])))
     r1 = chess_utils.StandardValue(game)
     if game.IsEnded():
-      rs[i] = r1
+      rs[i] = -r1
     else:
-      rs[i] = r1 - r0
+      rs[i] = -r1 - r0
   next_observations = GetObservations(games)
   next_values = m.outputs.eval(feed_dict={m.observations: next_observations})
   best_values = GetBestValues(games, next_values)

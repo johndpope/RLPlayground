@@ -15,7 +15,6 @@ parser.add_argument("--checkpoint_intervals", type=int, default=1)
 parser.add_argument("--max_game_steps", type=int, default=250)
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--gamma", type=float, default=.99)
-parser.add_argument("--temperature", type=float, nargs=2, default=[1., 1.])
 args = parser.parse_args()
 
 COLORS = ["black", "white"]
@@ -61,21 +60,23 @@ def SampleActions(games, ps):
   return np.array(actions, dtype=np.int32)
 
 
-def PlayTurn(m, games, temperature=1):
+def PlayTurn(m, games):
   observations = GetObservations(games)
   ps = m.outputs.eval(feed_dict={
-    m.observations: observations,
-    m.temperature: temperature})
+    m.observations: observations})
   actions = SampleActions(games, ps)
   rs = np.zeros([len(games)], dtype=np.float32)
   for i, game in enumerate(games):
+    if game.IsEnded():
+      rs[i] = 0
+      continue
     r0 = chess_utils.StandardValue(game)
     game.Play(chess.Move(int(actions[i])))
     r1 = chess_utils.StandardValue(game)
     if game.IsEnded():
-      rs[i] = r1
+      rs[i] = -r1
     else:
-      rs[i] = r1 - r0
+      rs[i] = -r1 - r0
   return observations, actions, rs
 
 
@@ -104,7 +105,7 @@ def GenerateData(models):
           step[0] = 0
       step[0] += 1
     observations, actions, rewards = PlayTurn(
-      models[c], games, args.temperature[c])
+      models[c], games)
     for i, d in enumerate(data):
       d[c].observations.append(observations[i])
       d[c].actions.append(actions[i])
