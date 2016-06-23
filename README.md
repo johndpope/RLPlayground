@@ -58,16 +58,15 @@ python py/diamond_train.py
 In this setup two independent agents are competing to win a chess game.
 The code is work in progress.
 
-To train the agents run:
+To train the policy gradient model run:
 ```
-python py/chess_train.py
+python py/chess_pg_train.py
 ```
-This is probably going to take forever! Since the rewards at this point are
-pretty simple. While Q-Learning algorithms are more suitable for this problem 
-I implemented the policy gradient algorithm because of its flexibility.
-Perhaps with better intermediate rewards and some supervised pre-training
-it could be possible to make this work but at this point it doens't seem to
-be doing much!    
+
+To train the Q-Learning model run:
+```
+python py/chess_q_train.py
+```
 
 Use the interactive demo to test out the environment:
 ``` 
