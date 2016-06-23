@@ -6,7 +6,7 @@ import os
 import time
 import tensorflow as tf
 
-import pg_model
+import model
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--world_size", type=int, default=5)
@@ -120,9 +120,9 @@ def GenerateData(model):
 
 
 def Train():
-  m = pg_model.Model(input_dim=args.world_size, embedding_rows=3, 
-    embedding_cols=3, output_dim=2,  hidden_dims=[10], 
-    lr=args.learning_rate, reg_factor=args.regularization)
+  m = model.Model(observations_dims=args.world_size, observations_rows=3, 
+    observations_cols=3, actions_dims=2,  hidden_dims=[10], 
+    lr=args.learning_rate, reg_factor=args.regularization, loss="softmax")
     
   sess = tf.Session()
   saver = tf.train.Saver()

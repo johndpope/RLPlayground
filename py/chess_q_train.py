@@ -6,7 +6,7 @@ import tensorflow as tf
 
 import chess
 import chess_utils
-import pg_model
+import model
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model_dir", type=str, default="model/")
@@ -15,11 +15,21 @@ parser.add_argument("--checkpoint_intervals", type=int, default=1)
 parser.add_argument("--max_game_steps", type=int, default=250)
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--gamma", type=float, default=.99)
-parser.add_argument("--temperature", type=float, nargs=2, default=[1., 1.])
+parser.add_argument("--epsilon", type=float, default=0.1)
 args = parser.parse_args()
 
-
 COLORS = ["black", "white"]
+
+MODEL_PARAMS = {
+  "observations_dims": 64, 
+  "observations_rows": 13, 
+  "observations_cols": 16, 
+  "actions_dims": 4096, 
+  "hidden_dims": [1024, 1024, 1024], 
+  "lr": 0.01, 
+  "reg_factor": 0.0001,
+  "loss": "l2"
+}
 
 
 class Data(object):
@@ -27,6 +37,63 @@ class Data(object):
     self.observations = []
     self.actions = []
     self.rewards = []
+
+
+def GetObservations(games):
+  observations = np.zeros([len(games), 64])
+  for i, game in enumerate(games):
+    board = game.GetState().board
+    for j in range(64):
+      observations[i, j] = board.At(j).Index()
+  return observations
+
+
+def SampleActions(games, values):
+  actions = []
+  for i, game in enumerate(games):
+    moves = game.GetMoves()
+    if len(moves) > 0:
+      vals = np.array([values[i, move.Index()] for move in moves])
+      if np.random.binomial(1, args.epsilon, 1)[0]:
+        idx = np.random.randint(len(moves))
+      else:
+        idx = np.argmax(vals)
+      actions.append(moves[idx].Index())
+    else:
+      actions.append(0)
+  return np.array(actions, dtype=np.int32)
+
+
+def GetBestValues(games, values):
+  best_values = []
+  for i, game in enumerate(games):
+    moves = game.GetMoves()
+    if len(moves) > 0:
+      vals = np.array([values[i, move.Index()] for move in moves])
+      best_values.append(np.max(vals))
+    else:
+      best_values.append(0)
+  return np.array(best_values, dtype=np.float32)
+
+
+def PlayTurn(m, games):
+  observations = GetObservations(games)
+  values = m.outputs.eval(feed_dict={m.observations: observations})
+  actions = SampleActions(games, values)
+  rs = np.zeros([len(games)], dtype=np.float32)
+  for i, game in enumerate(games):
+    r0 = chess_utils.StandardValue(game)
+    game.Play(chess.Move(int(actions[i])))
+    r1 = chess_utils.StandardValue(game)
+    if game.IsEnded():
+      rs[i] = r1
+    else:
+      rs[i] = r1 - r0
+  next_observations = GetObservations(games)
+  next_values = m.outputs.eval(feed_dict={m.observations: next_observations})
+  best_values = GetBestValues(games, next_values)
+  rewards = rs + args.gamma * best_values
+  return observations, actions, rewards
 
 
 def GenerateData(models):
@@ -44,8 +111,8 @@ def GenerateData(models):
   while True:
     for step, d, game in zip(steps, data, games):
       if game.IsEnded() or step[0] == args.max_game_steps:
-        if c == game.GetState().turn and game.IsCheckmate():
-          print "%s won at %d steps." % (COLORS[c], step[0])
+        if c == game.GetState().turn:
+          print "Game ended in %d steps." % step[0]
           yield d, game
         if c == 1:
           d[0] = Data()
@@ -53,13 +120,13 @@ def GenerateData(models):
           game.Reset()
           step[0] = 0
       step[0] += 1
-    observations, actions, rewards = chess_utils.PlayTurn(
-      models[c], games, args.temperature[c])
+    observations, actions, rewards = PlayTurn(models[c], games)
     for i, d in enumerate(data):
       d[c].observations.append(observations[i])
       d[c].actions.append(actions[i])
       d[c].rewards.append(rewards[i])
     c = 1 - c
+
 
 def ProcessData(iterator):
   data = [Data(), Data()]
@@ -73,8 +140,7 @@ def ProcessData(iterator):
       data[c].actions.append(
         np.array(d[c].actions, dtype=np.int32))
       data[c].rewards.append(
-        r * np.logspace(n-1, 0, num=n, base=args.gamma, 
-        dtype=np.float32))
+        np.array(d[c].rewards, dtype=np.float32))
     
     # Concatenate all the data
     if len(data[0].observations) == args.batch_size:
@@ -91,7 +157,7 @@ def Train():
   models = [None, None]
   for c in range(2):
     with tf.variable_scope(COLORS[c]):
-      models[c] = pg_model.Model(**chess_utils.MODEL_PARAMS)
+      models[c] = model.Model(**MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)
@@ -103,7 +169,7 @@ def Train():
     writer = tf.train.SummaryWriter(args.model_dir, tf.get_default_graph())
     sess.run(tf.initialize_all_variables())
 
-    model_path = os.path.join(args.model_dir, "model.ckpt")
+    model_path = os.path.join(args.model_dir, "chess_pgmodel.ckpt")
     if os.path.isfile(model_path):
       saver.restore(sess, model_path)
 
