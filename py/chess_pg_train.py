@@ -15,7 +15,7 @@ parser.add_argument("--checkpoint_intervals", type=int, default=1)
 parser.add_argument("--max_game_steps", type=int, default=250)
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--gamma", type=float, default=.99)
-args = parser.parse_args()
+args = parser.parse_args([])
 
 COLORS = ["black", "white"]
 
@@ -189,5 +189,25 @@ def Train():
           last_time = cur_time
 
 
+def PlayTurnIterator(game):
+  models = [None, None]
+  for c in range(2):
+    with tf.variable_scope(COLORS[c]):
+      models[c] = model.Model(**MODEL_PARAMS)
+
+  if not os.path.isdir(args.model_dir):
+    os.makedirs(args.model_dir)
+    
+  sess = tf.Session()
+  saver = tf.train.Saver()
+  with sess.as_default():
+    sess.run(tf.initialize_all_variables())
+    model_path = os.path.join(args.model_dir, "chess_pgmodel.ckpt")
+    saver.restore(sess, model_path)
+    while True:
+      yield PlayTurn(models[game.GetState().turn], [game])
+
 if __name__ == "__main__":
+  global args
+  args = parser.parse_args()
   Train()

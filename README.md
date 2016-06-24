@@ -70,11 +70,18 @@ python py/chess_q_train.py
 
 Use the interactive demo to test out the environment:
 ``` 
-python py/chess_interactive.py --depth 0 1
+python py/chess_interactive.py --mode random minimax
 ```
-At each step you can enter a move like "e4" or "e2e4" to move a piece.
+Note that you can specify the AI agent for black and white side separately.
+Here we are setting the black agent to _random_, and the white agent to use
+_minimax_ algorithm to select the move. You can also set this to _pg_ which
+refers to the agent trained with policy gradient, or _q_ which uses Q-Learning
+model to select moves.
+
+At each step you can take control of the game by entering a move like "e4" or 
+"e2e4".
 
 Special commands:
-- Enter: Play one move.
-- "x": Play until the end.
+- Enter: AI play one move.
+- "x": AI play until the end.
 - "r": Reset the board.
