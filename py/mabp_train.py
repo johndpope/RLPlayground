@@ -101,7 +101,7 @@ class Data(object):
     self.rewards = []
 
 
-def GenerateData(model):
+def GenerateData(m):
   # Generate complete games
   all_data = []
   for _ in range(args.batch_size):
@@ -110,7 +110,7 @@ def GenerateData(model):
 
     # Play with current policy
     while not state.IsEnded():
-      action, reward = PlayTurn(model, state)
+      action, reward = PlayTurn(m, state)
       data.actions.append(action)
       data.rewards.append(reward)
 
@@ -149,7 +149,7 @@ def Train():
         feed_dict={
           m.batch_size: data.actions.shape[0],
           m.actions: data.actions,
-          m.rewards: data.rewards
+          m.targets: data.rewards
         })
 
       cur_time = time.time()

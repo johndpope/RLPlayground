@@ -37,19 +37,21 @@ class Data(object):
     self.observations = []
     self.actions = []
     self.rewards = []
+    self.values = []
 
 
 def GetObservations(games):
   observations = np.zeros([len(games), 64])
   for i, game in enumerate(games):
     board = game.GetState().board
-    for j in range(64):
+    for j in xrange(64):
       observations[i, j] = board.At(j).Index()
   return observations
 
 
 def SampleActions(games, values):
   actions = []
+  sel_vals = []
   for i, game in enumerate(games):
     moves = game.GetMoves()
     if len(moves) > 0:
@@ -59,111 +61,104 @@ def SampleActions(games, values):
       else:
         idx = np.argmax(vals)
       actions.append(moves[idx].Index())
+      sel_vals.append(vals[idx])
     else:
       actions.append(0)
-  return np.array(actions, dtype=np.int32)
-
-
-def GetBestValues(games, values):
-  best_values = []
-  for i, game in enumerate(games):
-    moves = game.GetMoves()
-    if len(moves) > 0:
-      vals = np.array([values[i, move.Index()] for move in moves])
-      best_values.append(np.max(vals))
-    else:
-      best_values.append(0)
-  return np.array(best_values, dtype=np.float32)
+      sel_vals.append(0)
+  return np.array(actions, dtype=np.int32), np.array(sel_vals, dtype=np.float32) 
 
 
 def PlayTurn(m, games):
   observations = GetObservations(games)
   values = m.outputs.eval(feed_dict={m.observations: observations})
-  actions = SampleActions(games, values)
-  rs = np.zeros([len(games)], dtype=np.float32)
+  actions, values = SampleActions(games, values)
+  rewards = np.zeros([len(games)], dtype=np.float32)
   for i, game in enumerate(games):
     if game.IsEnded():
-      rs[i] = 0
+      rewards[i] = 0
       continue
     r0 = chess_utils.StandardValue(game)
     game.Play(chess.Move(int(actions[i])))
     r1 = chess_utils.StandardValue(game)
     if game.IsEnded():
-      rs[i] = -r1
+      rewards[i] = -r1
     else:
-      rs[i] = -r1 - r0
-  next_observations = GetObservations(games)
-  next_values = m.outputs.eval(feed_dict={m.observations: next_observations})
-  best_values = GetBestValues(games, next_values)
-  rewards = rs + args.gamma * best_values
-  return observations, actions, rewards
+      rewards[i] = -r1 - r0
+  return observations, actions, rewards, values
+
+
+def UpdateData(data):
+  # Convert to numpy
+  observations = np.array(data.observations, dtype=np.int32)
+  actions = np.array(data.actions, dtype=np.int32)
+  rewards = np.array(data.rewards, dtype=np.float32)
+  values = np.array(data.values, dtype=np.float32)
+
+  # Compute updated value based on current value and the gained reward 
+  new_values = rewards
+  new_values[:-1] -= rewards[1:]
+  new_values[:-2] += values[2:] * args.gamma
+  
+  # Update rewards and return
+  data = Data()
+  data.observations = observations
+  data.actions = actions
+  data.values = new_values
+  return data
 
 
 def GenerateData(models):
   games = []
   data = []
   steps = []
-  for _ in range(args.batch_size * 10):
+  for _ in xrange(args.batch_size):
     games.append(chess.Game())
-    data.append([Data(), Data()])
+    data.append(Data())
     steps.append([0])
 
   # Play with current policy
-  c = 1
   observations = np.zeros([len(games), 64], dtype=np.int32)
   while True:
     for step, d, game in zip(steps, data, games):
       if game.IsEnded() or step[0] == args.max_game_steps:
-        if c == game.GetState().turn:
-          if game.IsCheckmate():
-            print "%s won in %d steps." % (COLORS[c], step[0])
-          else:
-            print "Draw in %d steps." % step[0]
-          yield d, game
-        if c == 1:
-          d[0] = Data()
-          d[1] = Data()
-          game.Reset()
-          step[0] = 0
-      step[0] += 1
-    observations, actions, rewards = PlayTurn(models[c], games)
+        turn = game.GetState().turn
+        if game.IsCheckmate():
+          print "%s won in %d steps." % (COLORS[turn], step[0])
+        else:
+          print "Draw in %d steps." % step[0]
+        yield UpdateData(d)
+        game.Reset()
+        d.__init__()
+        step[0] = 0
+      else:
+        step[0] += 1
+    observations, actions, rewards, values = PlayTurn(models, games)
     for i, d in enumerate(data):
-      d[c].observations.append(observations[i])
-      d[c].actions.append(actions[i])
-      d[c].rewards.append(rewards[i])
-    c = 1 - c
+      d.observations.append(observations[i])
+      d.actions.append(actions[i])
+      d.rewards.append(rewards[i])
+      d.values.append(values[i])
 
 
-def ProcessData(iterator):
-  data = [Data(), Data()]
-  for d, game in iterator:
-    # Convert data to numpy and update the rewards
-    for c in range(2):
-      n = len(d[c].actions)
-      r = -1 if game.GetState().turn == c else 1.
-      data[c].observations.append(
-        np.array(d[c].observations, dtype=np.int32))
-      data[c].actions.append(
-        np.array(d[c].actions, dtype=np.int32))
-      data[c].rewards.append(
-        np.array(d[c].rewards, dtype=np.float32))
+def MakeBatch(iterator):
+  data = Data()
+  for d in iterator:
+    data.observations.append(d.observations)
+    data.actions.append(d.actions)
+    data.values.append(d.values)
     
     # Concatenate all the data
-    if len(data[0].observations) == args.batch_size:
-      cat_data = Data(), Data()      
-      for c in range(2):    
-        cat_data[c].observations = np.concatenate(data[c].observations)
-        cat_data[c].actions = np.concatenate(data[c].actions)
-        cat_data[c].rewards = np.concatenate(data[c].rewards)
-        data[c] = Data()
+    if len(data.observations) == args.batch_size:
+      cat_data = Data()      
+      cat_data.observations = np.concatenate(data.observations)
+      cat_data.actions = np.concatenate(data.actions)
+      cat_data.values = np.concatenate(data.values)
+      data.__init__()
       yield cat_data 
 
 
 def Train():
-  models = [None, None]
-  for c in range(2):
-    with tf.variable_scope(COLORS[c]):
-      models[c] = model.Model(**MODEL_PARAMS)
+  m = model.Model(**MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)
@@ -180,31 +175,27 @@ def Train():
       saver.restore(sess, model_path)
 
     last_time = time.time()
-    data_generator = ProcessData(GenerateData(models))
-    for _ in range(args.num_train_steps):
+    data_generator = MakeBatch(GenerateData(m))
+    for _ in xrange(args.num_train_steps):
       data = next(data_generator)
-      for m, d, color in zip(models, data, COLORS):
-        loss, global_step, _ = sess.run(
-          [m.loss, m.global_step, m.optimize],
-          feed_dict={
-            m.observations: d.observations,
-            m.actions: d.actions,
-            m.rewards: d.rewards
-          })
+      loss, global_step, _ = sess.run(
+        [m.loss, m.global_step, m.optimize],
+        feed_dict={
+          m.observations: data.observations,
+          m.actions: data.actions,
+          m.targets: data.values
+        })
 
-        if global_step % args.checkpoint_intervals == 0:
-          saver.save(sess, model_path)
-          cur_time = time.time()
-          print("%s: loss at step %d is %f, took %.2f seconds." % 
-            (color, global_step, loss, cur_time-last_time))
-          last_time = cur_time
+      if global_step % args.checkpoint_intervals == 0:
+        saver.save(sess, model_path)
+        cur_time = time.time()
+        print("Loss at step %d is %f, took %.2f seconds." % 
+          (global_step, loss, cur_time-last_time))
+        last_time = cur_time
 
 
 def PlayTurnIterator(game):
-  models = [None, None]
-  for c in range(2):
-    with tf.variable_scope(COLORS[c]):
-      models[c] = model.Model(**MODEL_PARAMS)
+  m = model.Model(**MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)
@@ -216,10 +207,9 @@ def PlayTurnIterator(game):
     model_path = os.path.join(args.model_dir, "chess_qmodel.ckpt")
     saver.restore(sess, model_path)
     while True:
-      yield PlayTurn(models[game.GetState().turn], [game])
+      yield PlayTurn(m, [game])
 
 
 if __name__ == "__main__":
-  global args
   args = parser.parse_args()
   Train()

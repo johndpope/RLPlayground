@@ -7,7 +7,7 @@ class Model(object):
     self.observations = tf.placeholder(
       tf.int32, shape=(None, observations_dims))
     self.actions = tf.placeholder(tf.int32, shape=(None))
-    self.rewards = tf.placeholder(tf.float32, shape=(None))
+    self.targets = tf.placeholder(tf.float32, shape=(None))
 
     batch_size = tf.shape(self.observations)[0]
 
@@ -35,12 +35,12 @@ class Model(object):
       self.outputs = tf.nn.softmax(logits)
       lls = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits, self.actions)
-      loss_term = tf.reduce_mean(self.rewards * lls)
+      loss_term = tf.reduce_mean(self.targets * lls)
     elif loss == "l2":
       self.outputs = logits
       offsets = tf.range(batch_size) * actions_dims
       vals = tf.gather(tf.reshape(logits, [-1]), self.actions + offsets)
-      loss_term = tf.nn.l2_loss(self.rewards - vals)
+      loss_term = tf.nn.l2_loss(self.targets - vals)
     else:
       print "Unknown loss:", loss
 
@@ -48,7 +48,7 @@ class Model(object):
     reg_term = tf.add_n(
       [tf.nn.l2_loss(var) for var in tf.trainable_variables()])
 
-    # Maximize stochastic expectation of rewards
+    # Maximize stochastic expectation of targets
     self.loss = loss_term + reg_term * reg_factor
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
     self.optimize = tf.train.AdagradOptimizer(lr).minimize(

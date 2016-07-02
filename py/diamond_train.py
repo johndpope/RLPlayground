@@ -77,7 +77,7 @@ class Data(object):
     self.rewards = []
 
 
-def GenerateData(model):
+def GenerateData(m):
   states = []
   data = []
   for _ in range(args.batch_size):
@@ -89,7 +89,7 @@ def GenerateData(model):
   for _ in range(args.sequence_length):
     for i, state in enumerate(states):
       observations[i] = state.world
-    ps = Policy(model, observations)
+    ps = Policy(m, observations)
     all_ended = True
     for i, (d, state) in enumerate(zip(data, states)):
       p = ps[i]
@@ -136,7 +136,7 @@ def Train():
         feed_dict={
           m.observations: data.observations,
           m.actions: data.actions,
-          m.rewards: data.rewards
+          m.targets: data.rewards
         })
 
       if global_step % args.eval_intervals == 0:

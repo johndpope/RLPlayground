@@ -42,7 +42,7 @@ def GetObservations(games):
   observations = np.zeros([len(games), 64])
   for i, game in enumerate(games):
     board = game.GetState().board
-    for j in range(64):
+    for j in xrange(64):
       observations[i, j] = board.At(j).Index()
   return observations
 
@@ -84,7 +84,7 @@ def GenerateData(models):
   games = []
   data = []
   steps = []
-  for _ in range(args.batch_size * 10):
+  for _ in xrange(args.batch_size * 10):
     games.append(chess.Game())
     data.append([Data(), Data()])
     steps.append([0])
@@ -124,11 +124,11 @@ def ComputeDiscountedRewards(rs):
   return rs
 
 
-def ProcessData(iterator):
+def MakeBatch(iterator):
   data = [Data(), Data()]
   for d, game in iterator:
     # Convert data to numpy and update the rewards
-    for c in range(2):
+    for c in xrange(2):
       n = len(d[c].actions)
       data[c].observations.append(
         np.array(d[c].observations, dtype=np.int32))
@@ -150,7 +150,7 @@ def ProcessData(iterator):
 
 def Train():
   models = [None, None]
-  for c in range(2):
+  for c in xrange(2):
     with tf.variable_scope(COLORS[c]):
       models[c] = model.Model(**MODEL_PARAMS)
 
@@ -169,8 +169,8 @@ def Train():
       saver.restore(sess, model_path)
 
     last_time = time.time()
-    data_generator = ProcessData(GenerateData(models))
-    for _ in range(args.num_train_steps):
+    data_generator = MakeBatch(GenerateData(models))
+    for _ in xrange(args.num_train_steps):
       data = next(data_generator)
       for m, d, color in zip(models, data, COLORS):
         loss, global_step, _ = sess.run(
@@ -178,7 +178,7 @@ def Train():
           feed_dict={
             m.observations: d.observations,
             m.actions: d.actions,
-            m.rewards: d.rewards
+            m.targets: d.rewards
           })
 
         if global_step % args.checkpoint_intervals == 0:
@@ -191,9 +191,9 @@ def Train():
 
 def PlayTurnIterator(game):
   models = [None, None]
-  for c in range(2):
+  for c in xrange(2):
     with tf.variable_scope(COLORS[c]):
-      models[c] = model.Model(**MODEL_PARAMS)
+      models[c] = m.Model(**MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)
@@ -208,6 +208,5 @@ def PlayTurnIterator(game):
       yield PlayTurn(models[game.GetState().turn], [game])
 
 if __name__ == "__main__":
-  global args
   args = parser.parse_args()
   Train()
