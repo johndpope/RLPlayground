@@ -16,6 +16,7 @@ parser.add_argument("--max_game_steps", type=int, default=250)
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--gamma", type=float, default=.99)
 parser.add_argument("--epsilon", type=float, default=0.1)
+parser.add_argument("--discard_draw", type=bool, default=False)
 args = parser.parse_args([])
 
 COLORS = ["black", "white"]
@@ -54,17 +55,13 @@ def SampleActions(games, values):
   sel_vals = []
   for i, game in enumerate(games):
     moves = game.GetMoves()
-    if len(moves) > 0:
-      vals = np.array([values[i, move.Index()] for move in moves])
-      if np.random.binomial(1, args.epsilon, 1)[0]:
-        idx = np.random.randint(len(moves))
-      else:
-        idx = np.argmax(vals)
-      actions.append(moves[idx].Index())
-      sel_vals.append(vals[idx])
+    vals = np.array([values[i, move.Index()] for move in moves])
+    if np.random.binomial(1, args.epsilon, 1)[0]:
+      idx = np.random.randint(len(moves))
     else:
-      actions.append(0)
-      sel_vals.append(0)
+      idx = np.argmax(vals)
+    actions.append(moves[idx].Index())
+    sel_vals.append(vals[idx])
   return np.array(actions, dtype=np.int32), np.array(sel_vals, dtype=np.float32) 
 
 
@@ -122,11 +119,12 @@ def GenerateData(models):
     for step, d, game in zip(steps, data, games):
       if game.IsEnded() or step[0] == args.max_game_steps:
         turn = game.GetState().turn
-        if game.IsCheckmate():
-          print "%s won in %d steps." % (COLORS[turn], step[0])
-        else:
-          print "Draw in %d steps." % step[0]
-        yield UpdateData(d)
+        if game.IsCheckmate() or not args.discard_draw:
+          if game.IsCheckmate():
+            print "%s won in %d steps." % (COLORS[turn], step[0])
+          else:
+            print "Draw in %d steps." % step[0]
+          yield UpdateData(d)
         game.Reset()
         d.__init__()
         step[0] = 0
