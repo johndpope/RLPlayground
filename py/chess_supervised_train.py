@@ -14,6 +14,7 @@ parser.add_argument("--checkpoint_intervals", type=int, default=1)
 parser.add_argument("--max_game_steps", type=int, default=250)
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--depth", type=int, nargs=2, default=[1, 1])
+parser.add_argument("--learning_rate", type=float, default=0.1)
 args = parser.parse_args([])
 
 COLORS = ["black", "white"]
@@ -24,8 +25,8 @@ MODEL_PARAMS = {
   "observations_cols": 16, 
   "actions_dims": 4096, 
   "hidden_dims": [1024, 1024, 1024], 
-  "lr": 0.01, 
-  "reg_factor": 0.0001,
+  "lr": args.learning_rate, 
+  "reg_factor": 0.00001,
   "loss": "softmax"
 }
 

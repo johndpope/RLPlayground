@@ -16,6 +16,7 @@ parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--gamma", type=float, default=.99)
 parser.add_argument("--epsilon", type=float, default=0.1)
 parser.add_argument("--discard_draw", type=bool, default=False)
+parser.add_argument("--learning_rate", type=float, default=0.1)
 args = parser.parse_args([])
 
 COLORS = ["Black", "White"]
@@ -26,8 +27,8 @@ MODEL_PARAMS = {
   "observations_cols": 16, 
   "actions_dims": 4096, 
   "hidden_dims": [1024, 1024, 1024], 
-  "lr": 0.01, 
-  "reg_factor": 0.0001,
+  "lr": args.learning_rate, 
+  "reg_factor": 0.00001,
   "loss": "l2"
 }
 
