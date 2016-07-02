@@ -173,7 +173,7 @@ def Train():
 
 
 def PlayTurnIterator(game):
-  m = m.Model(**MODEL_PARAMS)
+  m = model.Model(**MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)

@@ -133,21 +133,6 @@ def Train():
         last_time = cur_time
 
 
-def PlayTurnIterator(game):
-  m = m.Model(**MODEL_PARAMS)
-
-  if not os.path.isdir(args.model_dir):
-    os.makedirs(args.model_dir)
-    
-  sess = tf.Session()
-  saver = tf.train.Saver()
-  with sess.as_default():
-    sess.run(tf.initialize_all_variables())
-    model_path = os.path.join(args.model_dir, "chess_pgmodel.ckpt")
-    saver.restore(sess, model_path)
-    while True:
-      yield PlayTurn(m, [game])
-
 if __name__ == "__main__":
   args = parser.parse_args()
   Train()
