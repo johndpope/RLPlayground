@@ -114,7 +114,6 @@ def GenerateData(models):
     steps.append([0])
 
   # Play with current policy
-  observations = np.zeros([len(games), 64], dtype=np.int32)
   while True:
     for step, d, game in zip(steps, data, games):
       if game.IsEnded() or step[0] == args.max_game_steps:
