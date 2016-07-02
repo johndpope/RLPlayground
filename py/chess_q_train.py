@@ -74,9 +74,9 @@ def PlayTurn(m, games):
     if game.IsEnded():
       rewards[i] = 0
       continue
-    r0 = chess_utils.StandardValue(game)
+    r0 = chess_utils.GetStateValue(game)
     game.Play(chess.Move(int(actions[i])))
-    r1 = chess_utils.StandardValue(game)
+    r1 = chess_utils.GetStateValue(game)
     if game.IsEnded():
       rewards[i] = -r1
     else:

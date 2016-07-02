@@ -27,18 +27,9 @@ def PlayRandom(game):
   game.Play(sel);
 
 
-def PlayGreedy(game, depth=1, value_function=chess_utils.StandardValue):
-  turn = game.GetState().turn 
+def PlayGreedy(game, depth=1, value_function=chess_utils.GetStateValue): 
   moves = game.GetMoves()
-  values = []
-  for move in moves:
-    new_game = chess.Game(game)
-    new_game.Play(move)
-    value = -value_function(new_game)
-    if depth > 1 and not new_game.IsEnded():
-      value -= PlayGreedy(new_game, depth-1, value_function)
-    values.append(value)
-  values = np.array(values, dtype=np.float)
+  values = chess_utils.GetActionValues(game, moves)
   ind = np.random.choice(np.flatnonzero(values==values.max()))
   game.Play(moves[ind])
   return values[ind]

@@ -51,12 +51,9 @@ def SampleActions(games, ps):
   actions = []
   for i, game in enumerate(games):
     moves = game.GetMoves()
-    if len(moves) > 0:
-      probs = np.array([ps[i, move.Index()] for move in moves])
-      idx = np.random.choice(probs.size, 1, p=probs/probs.sum())[0]
-      actions.append(moves[idx].Index())
-    else:
-      actions.append(0)
+    probs = np.array([ps[i, move.Index()] for move in moves])
+    idx = np.random.choice(probs.size, 1, p=probs/probs.sum())[0]
+    actions.append(moves[idx].Index())
   return np.array(actions, dtype=np.int32)
 
 
@@ -70,9 +67,9 @@ def PlayTurn(m, games):
     if game.IsEnded():
       rs[i] = 0
       continue
-    r0 = chess_utils.StandardValue(game)
+    r0 = chess_utils.GetStateValue(game)
     game.Play(chess.Move(int(actions[i])))
-    r1 = chess_utils.StandardValue(game)
+    r1 = chess_utils.GetStateValue(game)
     if game.IsEnded():
       rs[i] = -r1
     else:
