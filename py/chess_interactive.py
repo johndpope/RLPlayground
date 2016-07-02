@@ -27,9 +27,10 @@ def PlayRandom(game):
   game.Play(sel);
 
 
-def PlayGreedy(game, depth=1, value_function=chess_utils.GetStateValue): 
+def PlayGreedy(game, depth=1): 
   moves = game.GetMoves()
-  values = chess_utils.GetActionValues(game, moves)
+  turn = game.GetState().turn
+  values = chess_utils.GetActionValues(game, moves, args.depth[turn])
   ind = np.random.choice(np.flatnonzero(values==values.max()))
   game.Play(moves[ind])
   return values[ind]

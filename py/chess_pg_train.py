@@ -17,7 +17,7 @@ parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--gamma", type=float, default=.99)
 args = parser.parse_args([])
 
-COLORS = ["black", "white"]
+COLORS = ["Black", "White"]
 
 MODEL_PARAMS = {
   "observations_dims": 64, 

@@ -19,7 +19,7 @@ parser.add_argument("--epsilon", type=float, default=0.1)
 parser.add_argument("--discard_draw", type=bool, default=False)
 args = parser.parse_args([])
 
-COLORS = ["black", "white"]
+COLORS = ["Black", "White"]
 
 MODEL_PARAMS = {
   "observations_dims": 64, 
