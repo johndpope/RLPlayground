@@ -54,9 +54,14 @@ a diamond in a 1-D environemnt by selecting right or left actions.
 python py/diamond_train.py
 ``` 
 
-## Chess demo
+## Chess Demo
 In this setup two independent agents are competing to win a chess game.
 The code is work in progress.
+
+To train the model supervised with a simple heuristic run:
+```
+python py/chess_supervised_train.py
+```
 
 To train the policy gradient model run:
 ```
