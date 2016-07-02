@@ -84,7 +84,7 @@ def GenerateData(m):
   games = []
   data = []
   steps = []
-  for _ in xrange(args.batch_size * 10):
+  for _ in xrange(args.batch_size):
     games.append(chess.Game())
     data.append(Data())
     steps.append([0])
