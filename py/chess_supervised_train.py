@@ -15,6 +15,7 @@ parser.add_argument("--max_game_steps", type=int, default=250)
 parser.add_argument("--batch_size", type=int, default=32)
 parser.add_argument("--depth", type=int, nargs=2, default=[1, 1])
 parser.add_argument("--learning_rate", type=float, default=0.1)
+parser.add_argument("--verbose", type=bool, default=False)
 args = parser.parse_args([])
 
 COLORS = ["Black", "White"]
@@ -65,11 +66,12 @@ def GenerateData():
   # Play with current policy
   while True:
     if game.IsEnded() or step == args.max_game_steps:
-      if game.IsCheckmate():
-        turn = game.GetState().turn
-        print "%s won in %d steps." % (COLORS[turn], step)
-      else:
-        print "Draw in %d steps." % step
+      if args.verbose:
+        if game.IsCheckmate():
+          turn = game.GetState().turn
+          print "%s won in %d steps." % (COLORS[turn], step)
+        else:
+          print "Draw in %d steps." % step
       yield data
       game.Reset()
       data.__init__()

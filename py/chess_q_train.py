@@ -17,6 +17,7 @@ parser.add_argument("--gamma", type=float, default=.99)
 parser.add_argument("--epsilon", type=float, default=0.1)
 parser.add_argument("--discard_draw", type=bool, default=False)
 parser.add_argument("--learning_rate", type=float, default=0.1)
+parser.add_argument("--verbose", type=bool, default=False)
 args = parser.parse_args([])
 
 COLORS = ["Black", "White"]
@@ -120,10 +121,11 @@ def GenerateData(models):
       if game.IsEnded() or step[0] == args.max_game_steps:
         turn = game.GetState().turn
         if game.IsCheckmate() or not args.discard_draw:
-          if game.IsCheckmate():
-            print "%s won in %d steps." % (COLORS[turn], step[0])
-          else:
-            print "Draw in %d steps." % step[0]
+          if args.verbose:
+            if game.IsCheckmate():
+              print "%s won in %d steps." % (COLORS[turn], step[0])
+            else:
+              print "Draw in %d steps." % step[0]
           yield UpdateData(d)
         game.Reset()
         d.__init__()
