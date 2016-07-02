@@ -17,14 +17,15 @@ parser.add_argument("--depth", type=int, nargs=2, default=[1, 1])
 parser.add_argument("--learning_rate", type=float, default=0.1)
 args = parser.parse_args([])
 
-COLORS = ["black", "white"]
+COLORS = ["Black", "White"]
 
 MODEL_PARAMS = {
   "observations_dims": 64, 
   "observations_rows": 13, 
   "observations_cols": 16, 
   "actions_dims": 4096, 
-  "hidden_dims": [1024, 1024, 1024], 
+  "hidden_dims": [1024] * 6, 
+  "use_residual": True,
   "lr": args.learning_rate, 
   "reg_factor": 0.00001,
   "loss": "softmax"

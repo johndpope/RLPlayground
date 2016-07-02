@@ -26,7 +26,8 @@ MODEL_PARAMS = {
   "observations_rows": 13, 
   "observations_cols": 16, 
   "actions_dims": 4096, 
-  "hidden_dims": [1024, 1024, 1024], 
+  "hidden_dims": [1024] * 6, 
+  "use_residual": True,
   "lr": args.learning_rate, 
   "reg_factor": 0.00001,
   "loss": "l2"

@@ -1,8 +1,33 @@
 import tensorflow as tf
 
+
+def DenseLayers(last, dims):
+  for i, dim in enumerate(dims):
+    last = tf.contrib.layers.fully_connected(
+      last, dim, scope="hidden_%d" % i)
+  return last
+
+
+def ResidualLayers(last, dims):
+  ll = last
+  ll_dim = last.get_shape().as_list()[-1]
+  for i, dim in enumerate(dims):
+    last = tf.contrib.layers.fully_connected(
+      tf.nn.relu(last), dim, activation_fn=None, scope="hidden_%d" % i)
+    if i % 2 == 1:
+      if dim != ll_dim:
+        ll = tf.contrib.layers.fully_connected(
+          ll, dim, activation_fn=None, scope="proj_%d" % i)
+      last += ll 
+      ll = last
+      ll_dim = dim
+  last = tf.nn.relu(last)
+  return last
+
+
 class Model(object):
   def __init__(self, observations_dims, observations_rows, observations_cols, 
-      actions_dims, hidden_dims, lr, reg_factor, loss):
+      actions_dims, hidden_dims, lr, reg_factor, loss, use_residual=False):
     # Define inputs
     self.observations = tf.placeholder(
       tf.int32, shape=(None, observations_dims))
@@ -20,14 +45,14 @@ class Model(object):
     obs_emb.set_shape([None, observations_dims * observations_cols])
 
     # Nonlinearities
-    last_hidden = obs_emb
-    for i, dim in enumerate(hidden_dims):
-      last_hidden = tf.contrib.layers.fully_connected(
-        last_hidden, dim, scope="hidden_%d" % i)
+    if use_residual:
+      hidden = ResidualLayers(obs_emb, hidden_dims)
+    else:
+      hidden = DenseLayers(obs_emb, hidden_dims)
 
     # Calculate probabilities for all actions for output
     logits = tf.contrib.layers.fully_connected(
-      last_hidden, actions_dims, activation_fn=None,
+      hidden, actions_dims, activation_fn=None,
       scope="output")
 
     # Calculate log-likelihoods for given action
