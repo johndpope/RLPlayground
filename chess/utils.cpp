@@ -1,8 +1,9 @@
+#include <algorithm>
 #include <stdio.h>
 #include <string.h>
 #include <sstream>
 
-#include "io.h" 
+#include "utils.h" 
 
 namespace chess {
 
@@ -118,6 +119,42 @@ std::vector<Move> Parse(const State& state, const char* str) {
     }
   }
   return moves;
+}
+
+float GetStateValue(const Game& game) {
+  if (game.IsCheckmate()) {
+    return -100;
+  } else if (game.IsDraw()) {
+    return 0;
+  }
+
+  static const float piece_values[] = {0, 0, 9, 5, 3, 3, 1};
+  static const float multiplier[] = {-1, 1};
+
+  const auto& state = game.GetState();
+  const auto& pieces = state.board.GetPieces();
+  float value = 0;
+  for (const auto& piece : pieces) {
+    value += piece_values[piece.type] * multiplier[state.turn==piece.color];
+  }
+  return value;
+}
+
+std::vector<float> GetActionValues(
+    const Game& game, const std::vector<Move>& moves, int depth) {
+  std::vector<float> values;
+  for (const auto& move : moves) {
+    Game next_game(game);
+    next_game.Play(move);
+    auto value = -GetStateValue(next_game);
+    if (depth > 1 && !next_game.IsEnded()) {
+      const auto& next_moves = next_game.GetMoves();
+      auto next_values = GetActionValues(next_game, next_moves, depth - 1);
+      value -= *std::max_element(next_values.begin(), next_values.end());
+    }
+    values.push_back(value);
+  }
+  return values;
 }
 
 }  // namespace chess

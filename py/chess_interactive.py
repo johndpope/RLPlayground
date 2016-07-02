@@ -4,7 +4,6 @@ import random
 import time
 
 import chess
-import chess_utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", type=str, nargs=2, 
@@ -30,7 +29,7 @@ def PlayRandom(game):
 def PlayGreedy(game, depth=1): 
   moves = game.GetMoves()
   turn = game.GetState().turn
-  values = chess_utils.GetActionValues(game, moves, args.depth[turn])
+  values = np.array(chess.GetActionValues(game, moves, args.depth[turn]))
   ind = np.random.choice(np.flatnonzero(values==values.max()))
   game.Play(moves[ind])
   return values[ind]

@@ -5,7 +5,6 @@ import time
 import tensorflow as tf
 
 import chess
-import chess_utils
 import model
 
 parser = argparse.ArgumentParser()
@@ -49,7 +48,7 @@ def PlayTurn(game):
   observation = GetObservation(game)
   moves = game.GetMoves()
   turn = game.GetState().turn
-  values = chess_utils.GetActionValues(game, moves, args.depth[turn])
+  values = np.array(chess.GetActionValues(game, moves, args.depth[turn]))
   ind = np.random.choice(np.flatnonzero(values==values.max()))
   move = moves[ind]
   game.Play(move)

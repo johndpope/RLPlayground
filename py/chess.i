@@ -7,17 +7,18 @@
 %{
 #include "types.h"
 #include "game.h"
-#include "io.h"
+#include "utils.h"
 %}
 
 namespace std {
-    %template(MoveVector) std::vector<chess::Move>;
+  %template(FloatVector) std::vector<float>;
+  %template(MoveVector) std::vector<chess::Move>;
   %template(SquareVector) std::vector<chess::Square>;
 }
 
 %include "types.h"
 %include "game.h"
-%include "io.h"
+%include "utils.h"
 
 %extend chess::Square
 {

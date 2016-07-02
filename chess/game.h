@@ -15,7 +15,7 @@ public:
   void Reset();
 
   const std::vector<Move>& GetMoves() const { return moves; }
-  State& GetState() { return state; }
+  const State& GetState() const { return state; }
 
   bool IsCheck() const { return check[state.turn]; }
   bool IsCheckmate() const { return check[state.turn] && moves.size() == 0; }

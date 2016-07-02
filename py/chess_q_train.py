@@ -5,7 +5,6 @@ import time
 import tensorflow as tf
 
 import chess
-import chess_utils
 import model
 
 parser = argparse.ArgumentParser()
@@ -74,9 +73,9 @@ def PlayTurn(m, games):
     if game.IsEnded():
       rewards[i] = 0
       continue
-    r0 = chess_utils.GetStateValue(game)
+    r0 = chess.GetStateValue(game)
     game.Play(chess.Move(int(actions[i])))
-    r1 = chess_utils.GetStateValue(game)
+    r1 = chess.GetStateValue(game)
     if game.IsEnded():
       rewards[i] = -r1
     else:
