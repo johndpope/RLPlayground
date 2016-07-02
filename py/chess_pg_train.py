@@ -80,40 +80,35 @@ def PlayTurn(m, games):
   return observations, actions, rs
 
 
-def GenerateData(models):
+def GenerateData(m):
   games = []
   data = []
   steps = []
   for _ in xrange(args.batch_size * 10):
     games.append(chess.Game())
-    data.append([Data(), Data()])
+    data.append(Data())
     steps.append([0])
 
   # Play with current policy
-  c = 1
   observations = np.zeros([len(games), 64], dtype=np.int32)
   while True:
     for step, d, game in zip(steps, data, games):
       if game.IsEnded() or step[0] == args.max_game_steps:
-        if c == game.GetState().turn:
-          if game.IsCheckmate():
-            print "%s won in %d steps." % (COLORS[c], step[0])
-          else:
-            print "Draw in %d steps." % step[0]
-          yield d, game
-        if c == 1:
-          d[0] = Data()
-          d[1] = Data()
-          game.Reset()
-          step[0] = 0
+        if game.IsCheckmate():
+          turn = game.GetState().turn
+          print "%s won in %d steps." % (COLORS[turn], step[0])
+        else:
+          print "Draw in %d steps." % step[0]
+        yield d, game
+        game.Reset()
+        d.__init__()
+        step[0] = 0
       step[0] += 1
-    observations, actions, rewards = PlayTurn(
-      models[c], games)
+    observations, actions, rewards = PlayTurn(m, games)
     for i, d in enumerate(data):
-      d[c].observations.append(observations[i])
-      d[c].actions.append(actions[i])
-      d[c].rewards.append(rewards[i])
-    c = 1 - c
+      d.observations.append(observations[i])
+      d.actions.append(actions[i])
+      d.rewards.append(rewards[i])
 
 
 def ComputeDiscountedRewards(rs):
@@ -125,34 +120,29 @@ def ComputeDiscountedRewards(rs):
 
 
 def MakeBatch(iterator):
-  data = [Data(), Data()]
+  data = Data()
   for d, game in iterator:
     # Convert data to numpy and update the rewards
-    for c in xrange(2):
-      n = len(d[c].actions)
-      data[c].observations.append(
-        np.array(d[c].observations, dtype=np.int32))
-      data[c].actions.append(
-        np.array(d[c].actions, dtype=np.int32))
-      data[c].rewards.append(
-       ComputeDiscountedRewards(np.array(d[c].rewards, dtype=np.float32)))
+    n = len(d.actions)
+    data.observations.append(
+      np.array(d.observations, dtype=np.int32))
+    data.actions.append(
+      np.array(d.actions, dtype=np.int32))
+    data.rewards.append(
+      ComputeDiscountedRewards(np.array(d.rewards, dtype=np.float32)))
     
     # Concatenate all the data
-    if len(data[0].observations) == args.batch_size:
-      cat_data = Data(), Data()      
-      for c in range(2):    
-        cat_data[c].observations = np.concatenate(data[c].observations)
-        cat_data[c].actions = np.concatenate(data[c].actions)
-        cat_data[c].rewards = np.concatenate(data[c].rewards)
-        data[c] = Data()
+    if len(data.observations) == args.batch_size:
+      cat_data = Data()      
+      cat_data.observations = np.concatenate(data.observations)
+      cat_data.actions = np.concatenate(data.actions)
+      cat_data.rewards = np.concatenate(data.rewards)
+      data.__init__()
       yield cat_data 
 
 
 def Train():
-  models = [None, None]
-  for c in xrange(2):
-    with tf.variable_scope(COLORS[c]):
-      models[c] = model.Model(**MODEL_PARAMS)
+  m = model.Model(**MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)
@@ -169,31 +159,27 @@ def Train():
       saver.restore(sess, model_path)
 
     last_time = time.time()
-    data_generator = MakeBatch(GenerateData(models))
+    data_generator = MakeBatch(GenerateData(m))
     for _ in xrange(args.num_train_steps):
       data = next(data_generator)
-      for m, d, color in zip(models, data, COLORS):
-        loss, global_step, _ = sess.run(
-          [m.loss, m.global_step, m.optimize],
-          feed_dict={
-            m.observations: d.observations,
-            m.actions: d.actions,
-            m.targets: d.rewards
-          })
+      loss, global_step, _ = sess.run(
+        [m.loss, m.global_step, m.optimize],
+        feed_dict={
+          m.observations: data.observations,
+          m.actions: data.actions,
+          m.targets: data.rewards
+        })
 
-        if global_step % args.checkpoint_intervals == 0:
-          saver.save(sess, model_path)
-          cur_time = time.time()
-          print("%s: loss at step %d is %f, took %.2f seconds." % 
-            (color, global_step, loss, cur_time-last_time))
-          last_time = cur_time
+      if global_step % args.checkpoint_intervals == 0:
+        saver.save(sess, model_path)
+        cur_time = time.time()
+        print("Loss at step %d is %f, took %.2f seconds." % 
+          (global_step, loss, cur_time-last_time))
+        last_time = cur_time
 
 
 def PlayTurnIterator(game):
-  models = [None, None]
-  for c in xrange(2):
-    with tf.variable_scope(COLORS[c]):
-      models[c] = m.Model(**MODEL_PARAMS)
+  m = m.Model(**MODEL_PARAMS)
 
   if not os.path.isdir(args.model_dir):
     os.makedirs(args.model_dir)
@@ -205,7 +191,7 @@ def PlayTurnIterator(game):
     model_path = os.path.join(args.model_dir, "chess_pgmodel.ckpt")
     saver.restore(sess, model_path)
     while True:
-      yield PlayTurn(models[game.GetState().turn], [game])
+      yield PlayTurn(m, [game])
 
 if __name__ == "__main__":
   args = parser.parse_args()
