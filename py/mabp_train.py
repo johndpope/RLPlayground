@@ -18,7 +18,7 @@ args = parser.parse_args()
 
 
 class Model(object):
-  def __init__(self, num_actions, lr, reg_factor):
+  def __init__(self, num_actions, lr, reg_factor, b_momentum=0.9):
     # Define inputs 
     self.actions = tf.placeholder(tf.int32, shape=(None))
     self.rewards = tf.placeholder(tf.float32, shape=(None))
@@ -38,9 +38,19 @@ class Model(object):
     # Calculate weight regularization term
     reg_term = tf.add_n(
       [tf.nn.l2_loss(var) for var in tf.trainable_variables()])
+
+    # Update baseline.
+    baseline = tf.Variable([0.], name="baseline")
+    b_term = b_momentum * tf.nn.l2_loss(self.rewards - baseline)
     
-    # Maximize stochastic expectation of rewards   
-    self.loss = tf.reduce_mean(self.rewards * lls) + reg_term * reg_factor
+    # Maximize stochastic expectation of rewards
+    adjusted_reward = self.rewards - tf.stop_gradient(baseline)
+    pg_term = tf.reduce_mean(adjusted_reward * lls)
+
+    # Regularization factor
+    reg_loss = reg_term * reg_factor
+
+    self.loss = pg_term + b_term + reg_term
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
     # Calculate gradients and subtract from the weights
@@ -149,7 +159,7 @@ def Train():
         feed_dict={
           m.batch_size: data.actions.shape[0],
           m.actions: data.actions,
-          m.targets: data.rewards
+          m.rewards: data.rewards
         })
 
       cur_time = time.time()

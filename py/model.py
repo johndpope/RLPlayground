@@ -27,7 +27,8 @@ def ResidualLayers(last, dims):
 
 class Model(object):
   def __init__(self, observations_dims, observations_rows, observations_cols, 
-      actions_dims, hidden_dims, lr, reg_factor, loss, use_residual=False):
+      actions_dims, hidden_dims, lr, reg_factor, loss, use_residual=False,
+      b_factor=0.9):
     # Define inputs
     self.observations = tf.placeholder(
       tf.int32, shape=(None, observations_dims))
@@ -60,7 +61,10 @@ class Model(object):
       self.outputs = tf.nn.softmax(logits)
       lls = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits, self.actions)
-      loss_term = tf.reduce_mean(self.targets * lls)
+      baseline = tf.Variable([0.], name="baseline")
+      b_term = b_factor * tf.nn.l2_loss(self.targets - baseline)
+      adjusted_rewards = self.targets - baseline
+      loss_term = tf.reduce_mean(adjusted_rewards * lls) + b_term
     elif loss == "l2":
       self.outputs = logits
       offsets = tf.range(batch_size) * actions_dims
