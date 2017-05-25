@@ -9,6 +9,7 @@ import tensorflow as tf
 import model
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--model_dir", type=str, default="model/")
 parser.add_argument("--world_size", type=int, default=5)
 parser.add_argument("--sequence_length", type=int, default=5)
 parser.add_argument("--num_train_steps", type=int, default=1000000)
@@ -125,19 +126,22 @@ def Train():
   saver = tf.train.Saver()
 
   with sess.as_default():
-    sess.run(tf.initialize_all_variables())
+    writer = tf.summary.FileWriter(args.model_dir, tf.get_default_graph())
+    sess.run(tf.global_variables_initializer())
 
     last_time = time.time()
     global_step = m.global_step.eval()
     while global_step < args.num_train_steps:
       data = GenerateData(m)
-      loss, global_step, _ = sess.run(
-        [m.loss, m.global_step, m.optimize],
+      loss, global_step, _, summaries = sess.run(
+        [m.loss, m.global_step, m.optimize, m.summaries],
         feed_dict={
           m.observations: data.observations,
           m.actions: data.actions,
           m.targets: data.rewards
         })
+      
+      writer.add_summary(summaries, global_step)
 
       if global_step % args.eval_intervals == 0:
         cur_time = time.time()

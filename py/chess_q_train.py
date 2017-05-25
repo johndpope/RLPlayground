@@ -167,7 +167,7 @@ def Train():
   saver = tf.train.Saver()
 
   with sess.as_default():
-    writer = tf.train.SummaryWriter(args.model_dir, tf.get_default_graph())
+    writer = tf.summary.FileWriter(args.model_dir, tf.get_default_graph())
     sess.run(tf.initialize_all_variables())
 
     model_path = os.path.join(args.model_dir, "chess_qmodel.ckpt")

@@ -42,7 +42,7 @@ class Model(object):
       "obs_embedding", [observations_rows, observations_cols])
     obs_emb = tf.gather(obs_emb_w, tf.reshape(self.observations, [-1]))
     obs_emb = tf.reshape(
-      obs_emb, tf.pack([batch_size, observations_dims * observations_cols]))
+      obs_emb, tf.stack([batch_size, observations_dims * observations_cols]))
     obs_emb.set_shape([None, observations_dims * observations_cols])
 
     # Nonlinearities
@@ -60,16 +60,19 @@ class Model(object):
     if loss == "softmax":
       self.outputs = tf.nn.softmax(logits)
       lls = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        logits, self.actions)
-      baseline = tf.Variable([0.], name="baseline")
+        labels=self.actions, logits=logits)
+      baseline = tf.Variable(0., name="baseline")
+      tf.summary.scalar('loss/baseline', baseline)
+      tf.summary.scalar('loss/rewards', tf.reduce_mean(self.targets))
       b_term = b_factor * tf.nn.l2_loss(self.targets - baseline)
-      adjusted_rewards = self.targets - baseline
-      loss_term = tf.reduce_mean(adjusted_rewards * lls) + b_term
+      adjusted_rewards = tf.stop_gradient(self.targets - baseline)
+      loss_term = tf.reduce_mean(adjusted_rewards * lls) + b_term      
     elif loss == "l2":
       self.outputs = logits
       offsets = tf.range(batch_size) * actions_dims
       vals = tf.gather(tf.reshape(logits, [-1]), self.actions + offsets)
       loss_term = tf.nn.l2_loss(self.targets - vals)
+      tf.summary.scalar('loss/l2_loss', loss_term)
     else:
       print "Unknown loss:", loss
 
@@ -79,6 +82,10 @@ class Model(object):
 
     # Maximize stochastic expectation of targets
     self.loss = loss_term + reg_term * reg_factor
+    tf.summary.scalar('loss/loss', self.loss)
+
     self.global_step = tf.Variable(0, name='global_step', trainable=False)
     self.optimize = tf.train.AdagradOptimizer(lr).minimize(
       self.loss, global_step=self.global_step)
+    
+    self.summaries = tf.summary.merge_all()
